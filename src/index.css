@@ -1,0 +1,137 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+:root {
+  --bg-dark: #f8fafc; /* bg-slate-50 */
+  --card-dark: #ffffff; /* bg-white */
+  --card-dark-hover: #f1f5f9; /* bg-slate-100 */
+  --primary-gold: #4f46e5; /* indigo-600 */
+  --primary-gold-hover: #4338ca; /* indigo-700 */
+  --primary-gold-dim: #312e81; /* indigo-900 */
+  --border-color: #e2e8f0; /* border-slate-200 */
+  --text-muted: #475569; /* text-slate-600 / slate-500 */
+  --text-bright: #0f172a; /* text-slate-900 */
+}
+
+.dark {
+  --bg-dark: #090d16;
+  --card-dark: #111827; 
+  --card-dark-hover: #1e293b;
+  --border-color: #1f2937;
+  --text-muted: #9ca3af;
+  --text-bright: #f3f4f6;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-bright);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Beautiful dark mode component overrrides */
+.dark .bg-white {
+  background-color: #111827 !important;
+}
+
+.dark .bg-slate-50 {
+  background-color: #0d1527 !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: #1f2937 !important;
+}
+
+.dark .hover\:bg-slate-50:hover {
+  background-color: #1f2937 !important;
+}
+
+.dark .border-slate-200,
+.dark .border-slate-100 {
+  border-color: #1f2937 !important;
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: #f3f4f6 !important;
+}
+
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: #9ca3af !important;
+}
+
+.dark input, 
+.dark textarea, 
+.dark select {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #f3f4f6 !important;
+}
+
+.dark input::placeholder, 
+.dark textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Specific styling for the scenario cards in Dark mode */
+.dark .bg-slate-50.border-slate-200 {
+  background-color: #111827 !important;
+  border-color: #1f2937 !important;
+}
+.dark .bg-slate-50.border-slate-200:hover {
+  border-color: #4f46e5 !important;
+  background-color: #151d30 !important;
+}
+
+/* Testimonial bubbles / specific cards */
+.dark .bg-indigo-50 {
+  background-color: rgba(79, 70, 229, 0.08) !important;
+}
+.dark .border-indigo-100, .dark .border-indigo-200 {
+  border-color: rgba(79, 70, 229, 0.2) !important;
+}
+.dark .text-indigo-600, .dark .text-indigo-750, .dark .text-indigo-700 {
+  color: #818cf8 !important;
+}
+
+/* Dynamic scrollbars for Dark mode */
+.dark ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Custom scrollbars for textareas and results lists, matching slate light theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.custom-gradient-text {
+  background: linear-gradient(135deg, #0f172a 30%, #4f46e5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

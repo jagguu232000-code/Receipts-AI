@@ -1,0 +1,6 @@
+{
+  "name": "Receipts AI",
+  "description": "Double down on social proof. Turn your client wins into 4 high-conversion ready-to-publish assets simultaneously with custom tones and easy previews.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
