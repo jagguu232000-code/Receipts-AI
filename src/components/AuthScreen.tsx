@@ -103,28 +103,6 @@ export default function AuthScreen({
   const [customGoogleName, setCustomGoogleName] = useState<string>("");
   const [customGoogleEmail, setCustomGoogleEmail] = useState<string>("");
 
-  const handleGoogleSignIn = async () => {
-    if (isGoogleAuthenticating) return;
-    setIsGoogleAuthenticating(true);
-    setErrorMsg("");
-
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/`,
-        },
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Google sign-in failed');
-      }
-    } catch (err: any) {
-      console.error("Google Auth Error:", err);
-      setErrorMsg(err.message || "Google authentication failed. Please try again.");
-      setIsGoogleAuthenticating(false);
-    }
-  };
 
 
   const handleDirectLogin = async (e: React.FormEvent) => {
@@ -910,35 +888,9 @@ export default function AuthScreen({
                   </button>
 
                   {!isVerificationStep && (
-                    <>
-                      {/* Google Authenticator OAuth Divider & Option */}
-                      <div className="my-4 flex items-center justify-between gap-2 overflow-hidden select-none">
-                        <span className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest px-2">or continue with</span>
-                        <span className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleGoogleSignIn}
-                        disabled={isGoogleAuthenticating}
-                        className={`w-full py-2.5 rounded-lg border border-slate-250 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-850 text-xs text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center gap-2.5 transition-all shadow-xs hover:shadow-sm ${isGoogleAuthenticating ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
-                      >
-                        <svg className={`w-4.5 h-4.5 ${isGoogleAuthenticating ? "animate-spin" : ""}`} viewBox="0 0 24 24">
-                          {isGoogleAuthenticating ? (
-                            <path fill="currentColor" d="M12 4V2C6.48 2 2 6.48 2 12h2c0-4.41 3.59-8 8-8z" />
-                          ) : (
-                            <>
-                              <path fill="#EA4335" d="M12 5.04c1.7 0 3.2.58 4.4 1.7l3.3-3.3C17.7 1.4 15 0 12 0 7.3 0 3.3 2.7 1.3 6.6l3.9 3c1-2.9 3.7-4.52 6.8-4.52z"/>
-                              <path fill="#4285F4" d="M23.5 12.3c0-.8-.07-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.7-2.3 3.5l3.6 2.8c2.1-2 3.7-4.9 3.7-8.5z"/>
-                              <path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.2-1.7.4-2.4l-3.9-3C.5 8.1 0 10 0 12s.5 3.9 1.3 5.4l3.9-3z"/>
-                              <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.6-2.8c-1.2.8-2.8 1.3-4.4 1.3-3.1 0-5.8-1.7-6.8-4.5l-3.9 3c2 3.9 6 6.4 10.7 6.4z"/>
-                            </>
-                          )}
-                        </svg>
-                        <span>{isGoogleAuthenticating ? "Connecting Google..." : (isSignUp ? "Sign up with Google account" : "Sign in with Google account")}</span>
-                      </button>
-                    </>
+                    <div className="text-center mt-3 text-[11px] text-slate-400">
+                      <p>Google OAuth will be available after Supabase configuration in your Supabase Dashboard.</p>
+                    </div>
                   )}
 
                   {!isSignUp && (
