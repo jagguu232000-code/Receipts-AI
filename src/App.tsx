@@ -1,39 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Sparkles, 
-  Check, 
-  ChevronRight, 
-  ArrowLeft, 
-  Copy, 
-  Download, 
-  Trash2, 
-  Plus, 
-  Twitter, 
-  MessageSquare, 
-  Layers, 
-  Quote, 
-  Edit3, 
-  X,
-  FileText,
-  AlertCircle,
-  TrendingUp,
-  Award,
-  BookOpen,
-  RefreshCw,
-  ArrowRight,
-  Lock,
-  Mail,
-  Settings,
-  ExternalLink,
-  User,
-  LogOut,
-  Clock,
-  ShieldCheck,
-  Linkedin,
-  Star,
-  Share2,
-  FileSpreadsheet
-} from "lucide-react";
+import { Sparkles, Check, ChevronRight, ArrowLeft, Copy, Download, Trash2, Plus, Twitter, MessageSquare, Layers, Quote, CreditCard as Edit3, X, FileText, CircleAlert as AlertCircle, TrendingUp, Award, BookOpen, RefreshCw, ArrowRight, Lock, Mail, Settings, ExternalLink, User, LogOut, Clock, ShieldCheck, Linkedin, Star, Share2, FileSpreadsheet } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import UserProfileModal from "./components/UserProfileModal";
 import AuthScreen from "./components/AuthScreen";
@@ -42,6 +8,7 @@ import NetworkAndPageLoader from "./components/NetworkAndPageLoader";
 import AboutPage from "./components/AboutPage";
 import VaultAndAnalyticsBoard from "./components/VaultAndAnalyticsBoard";
 import html2canvas from "html2canvas";
+import { supabase } from "./supabaseClient";
 
 // Types
 interface CustomTone {
@@ -299,6 +266,31 @@ export default function App() {
     document.documentElement.classList.add("dark");
     document.body.classList.add("dark");
     localStorage.setItem("receipts_dark_mode", "true");
+  }, []);
+
+  // Setup Supabase auth listener for OAuth redirects
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (profile) {
+            setCurrentUser(profile);
+            localStorage.setItem('receipts_current_user', JSON.stringify(profile));
+            setShowAuthMode('landing');
+          }
+        }
+      }
+    );
+
+    return () => {
+      authListener?.subscription.unsubscribe?.();
+    };
   }, []);
 
   // Navigation & Steps state

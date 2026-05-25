@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { auth, googleProvider, signInWithPopup } from "../firebase";
+import { supabase, UserProfile } from "../supabaseClient";
 import { ShieldCheck, User, Mail, Phone, Lock, Eye, EyeOff, MapPin, Camera, Check, CircleAlert as AlertCircle, KeyRound, ArrowRight, Circle as HelpCircle, Clock, Sparkles, RefreshCw, Award } from "lucide-react";
 
 interface AuthScreenProps {
@@ -103,117 +103,29 @@ export default function AuthScreen({
   const [customGoogleName, setCustomGoogleName] = useState<string>("");
   const [customGoogleEmail, setCustomGoogleEmail] = useState<string>("");
 
-  const buildLocalGoogleUser = (name: string, email: string, avatar: string) => ({
-    fullName: name,
-    email: email.toLowerCase().trim(),
-    mobileNumber: "+1 (555) 019-2831",
-    passwordHex: "OAuth-Verified-Google-Sign-In",
-    city: "San Francisco",
-    country: "United States",
-    bio: "Google Workspace copywriter profile",
-    avatarUrl: avatar,
-    signUpMethod: "google",
-    authProvider: "google",
-    registeredAt: new Date().toISOString(),
-    hasUsedTrial: false,
-    isPurchased: false,
-    licenseKey: ""
-  });
-
-  const handleGoogleAccountSelect = async (name: string, email: string, avatar: string) => {
-    setIsSendingCode(true);
-    setErrorMsg("");
-
-    let finalUser: any = null;
-
-    try {
-      const response = await fetch("/api/register-signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName: name,
-          email: email,
-          phone: "+1 (555) 019-2831",
-          password: "OAuth-Verified-Google-Sign-In",
-          bio: "Google Workspace copywriter profile",
-          authProvider: "google",
-          signUpMethod: "google",
-          avatarUrl: avatar,
-          isPurchased: false
-        })
-      });
-
-      if (response.ok) {
-        const verifiedResponse = await response.json();
-        finalUser = verifiedResponse.user || verifiedResponse;
-      } else {
-        // Backend unavailable (e.g. Vercel static deployment) — build user locally
-        finalUser = buildLocalGoogleUser(name, email, avatar);
-      }
-    } catch {
-      // Network error or no backend — build user locally
-      finalUser = buildLocalGoogleUser(name, email, avatar);
-    }
-
-    // Persist user locally
-    localStorage.setItem("receipts_current_user", JSON.stringify(finalUser));
-
-    const usersStr = localStorage.getItem("receipts_registered_users");
-    const usersList = usersStr ? JSON.parse(usersStr) : [];
-    if (!usersList.some((u: any) => (u?.email || "").toLowerCase() === (email || "").toLowerCase())) {
-      usersList.push(finalUser);
-      localStorage.setItem("receipts_registered_users", JSON.stringify(usersList));
-    }
-
-    // Fire-and-forget activity log — ignore failures (backend may not be available)
-    fetch("/api/record-activity", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userEmail: email,
-        userName: name,
-        action: "Authenticated via Google Account",
-        details: `Direct OAuth session initiated successfully for ${name}.`
-      })
-    }).catch(() => {});
-
-    setIsGoogleModalOpen(false);
-    setIsSendingCode(false);
-    onAuthSuccess(finalUser);
-  };
-
   const handleGoogleSignIn = async () => {
     if (isGoogleAuthenticating) return;
     setIsGoogleAuthenticating(true);
     setErrorMsg("");
+
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      const name = user.displayName || "Google User";
-      const email = user.email || "";
-      const avatar = user.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80";
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+        },
+      });
 
-      if (!email) {
-        throw new Error("Could not retrieve email from Google Account.");
+      if (error) {
+        throw new Error(error.message || 'Google sign-in failed');
       }
-
-      await handleGoogleAccountSelect(name, email, avatar);
     } catch (err: any) {
-      console.error("Firebase Auth Error: ", err);
-      const errCode = err?.code || "";
-      if (errCode === "auth/cancelled-popup-request" || err.message?.includes("cancelled-popup-request")) {
-        setErrorMsg("Google authentication popup was cancelled by a secondary click or window refresh. Please click once and wait a moment.");
-      } else if (errCode === "auth/popup-closed-by-user" || err.message?.includes("popup-closed-by-user")) {
-        setErrorMsg("Sign-in window closed before authentication is completed. Please click sign-in and select your Google account.");
-      } else if (errCode === "auth/popup-blocked" || err.message?.includes("popup-blocked")) {
-        setErrorMsg("Popup block detected. Please allow popups for Receipts AI and click again.");
-      } else {
-        setErrorMsg(err.message || "Google Authentication popup was closed or cancelled.");
-      }
-    } finally {
+      console.error("Google Auth Error:", err);
+      setErrorMsg(err.message || "Google authentication failed. Please try again.");
       setIsGoogleAuthenticating(false);
     }
   };
+
 
   const handleDirectLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,54 +140,46 @@ export default function AuthScreen({
     setIsSendingCode(true);
 
     try {
-      const resp = await fetch("/api/developers/logs");
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data.users && Array.isArray(data.users)) {
-          localStorage.setItem("receipts_registered_users", JSON.stringify(data.users));
-        }
-      }
-    } catch (err) {}
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password: loginPassword,
+      });
 
-    setTimeout(() => {
-      const usersStr = localStorage.getItem("receipts_registered_users");
-      let usersList = [];
-      if (usersStr) {
-        try {
-          usersList = JSON.parse(usersStr);
-        } catch (err) {}
-      }
-
-      const matchingUser = usersList.find(
-        (u: any) => (u?.email || "").toLowerCase() === loginEmail.toLowerCase().trim() && u.passwordHex === loginPassword
-      );
-
-      if (!matchingUser) {
+      if (authError) {
         setIsSendingCode(false);
-        setErrorMsg("Incorrect email address or password. Please verify your credentials and try again, or register for a free account.");
+        setErrorMsg(authError.message || "Login failed. Please check your credentials.");
         return;
       }
 
-      // Record Activity dynamically
-      fetch("/api/record-activity", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userEmail: matchingUser.email,
-          userName: matchingUser.fullName,
-          action: "User logged into secure session",
-          details: "Authentication verified through credentials handshake"
-        })
-      }).catch(() => {});
+      if (!authData.user) {
+        setIsSendingCode(false);
+        setErrorMsg("Authentication succeeded but user data not available.");
+        return;
+      }
 
-      localStorage.setItem("receipts_current_user", JSON.stringify(matchingUser));
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        setIsSendingCode(false);
+        setErrorMsg("Could not load user profile.");
+        return;
+      }
+
       setSuccessMsg("🎉 Welcome back! Establishing secure credentials session...");
+      localStorage.setItem("receipts_current_user", JSON.stringify(profile));
 
       setTimeout(() => {
         setIsSendingCode(false);
-        onAuthSuccess(matchingUser);
+        onAuthSuccess(profile);
       }, 1000);
-    }, 1200);
+    } catch (err: any) {
+      setIsSendingCode(false);
+      setErrorMsg(err.message || "Login failed. Please try again.");
+    }
   };
 
   const handleSendCode = async (e: React.FormEvent) => {
@@ -291,31 +195,72 @@ export default function AuthScreen({
     setIsSendingCode(true);
 
     try {
-      const resp = await fetch("/api/send-signup-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, mobileNumber })
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password,
       });
-      const data = await resp.json();
-      if (!resp.ok) {
-        throw new Error(data.error || "Failed dual OTP dispatch service.");
+
+      if (signUpError) {
+        setIsSendingCode(false);
+        setErrorMsg(signUpError.message || "Registration failed. Please try again.");
+        return;
       }
 
-      setDispatchedCode(data.code);
-      setIsSendingCode(false);
-      setIsVerificationStep(true);
-      setTimerCount(60);
-      setSuccessMsg("System successfully verified and dispatched a 6-digit verification code to BOTH your email address and phone number simultaneously.");
-      console.log(`📨 [Receipts AI OTP Server] Code Sent: ${data.code}`);
+      if (!signUpData.user) {
+        setIsSendingCode(false);
+        setErrorMsg("Registration succeeded but user data not available.");
+        return;
+      }
+
+      const { error: profileError } = await supabase.from('users').insert({
+        id: signUpData.user.id,
+        email: email.trim().toLowerCase(),
+        full_name: fullName.trim(),
+        mobile_number: mobileNumber.trim(),
+        city: city,
+        country: country,
+        bio: bio,
+        avatar_url: avatarUrl,
+        signup_method: 'email',
+        has_used_trial: false,
+        is_purchased: false,
+        license_key: '',
+        free_trials_used: 0,
+      });
+
+      if (profileError) {
+        setIsSendingCode(false);
+        setErrorMsg("Could not create user profile. Please try again.");
+        return;
+      }
+
+      const newProfile = {
+        id: signUpData.user.id,
+        email: email.trim().toLowerCase(),
+        full_name: fullName.trim(),
+        mobile_number: mobileNumber.trim(),
+        city: city,
+        country: country,
+        bio: bio,
+        avatar_url: avatarUrl,
+        signup_method: 'email',
+        has_used_trial: false,
+        is_purchased: false,
+        license_key: '',
+        free_trials_used: 0,
+        created_at: new Date().toISOString(),
+      };
+
+      setSuccessMsg("Registration successful! Logging you in...");
+      localStorage.setItem("receipts_current_user", JSON.stringify(newProfile));
+
+      setTimeout(() => {
+        setIsSendingCode(false);
+        onAuthSuccess(newProfile);
+      }, 1000);
     } catch (err: any) {
-      console.warn("OTP server error, falling back to simulated otp:", err);
-      const randomCode = Math.floor(100000 + Math.random() * 900000).toString();
-      setDispatchedCode(randomCode);
       setIsSendingCode(false);
-      setIsVerificationStep(true);
-      setTimerCount(60);
-      setSuccessMsg("We've sent a 6-digit verification code to your email and phone number. Please enter it below to complete your registration.");
-      console.log(`📨 [Receipts AI OTP Simulated] Verification code: ${randomCode} (Use master code 777888 or 123456 to bypass)`);
+      setErrorMsg(err.message || "Registration failed. Please try again.");
     }
   };
 
@@ -344,7 +289,7 @@ export default function AuthScreen({
     }
   };
 
-  const handleSendResetCode = (e: React.FormEvent) => {
+  const handleSendResetCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
@@ -354,178 +299,80 @@ export default function AuthScreen({
       return;
     }
 
-    const usersStr = localStorage.getItem("receipts_registered_users");
-    let usersList = [];
-    if (usersStr) {
-      try {
-        usersList = JSON.parse(usersStr);
-      } catch (err) {}
-    }
-
-    const userExists = usersList.find((u: any) => (u?.email || "").toLowerCase() === (forgotEmail || "").trim().toLowerCase());
-    if (!userExists) {
-      setErrorMsg("No registered account found with this email address.");
-      return;
-    }
-
     setIsForgotPasswordSendingCode(true);
 
-    setTimeout(() => {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      setResetDispatchedCode(code);
-      setIsForgotPasswordSendingCode(false);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        setIsForgotPasswordSendingCode(false);
+        setErrorMsg(error.message || "Failed to send reset email.");
+        return;
+      }
+
       setForgotStep("code");
       setForgotTimerCount(60);
-      setSuccessMsg("We have sent a security verification code to your registered email address.");
-      console.log(`📨 [Receipts AI OTP Service] Password Reset code: ${code} (Use master code 777888 to bypass)`);
-    }, 1200);
+      setSuccessMsg("Password reset link sent to your email. Check your inbox.");
+      setIsForgotPasswordSendingCode(false);
+    } catch (err: any) {
+      setIsForgotPasswordSendingCode(false);
+      setErrorMsg(err.message || "Failed to send reset email.");
+    }
   };
 
   const handleVerifyResetCode = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
-
-    if (resetEnteredCode !== resetDispatchedCode && resetEnteredCode !== "777888") {
-      setErrorMsg("Invalid email verification code. Please check and retry.");
-      return;
-    }
-
     setForgotStep("new_password");
-    setSuccessMsg("✓ Email Identity verified! Now, establish your premium credential password.");
+    setSuccessMsg("✓ Check your email for the password reset link. Enter your new password below.");
   };
 
-  const handleSaveNewPassword = (e: React.FormEvent) => {
+  const handleSaveNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
 
-    if (newPassword.length < 5) {
-      setErrorMsg("Password must be at least 5 characters for robust credential security.");
+    if (newPassword.length < 6) {
+      setErrorMsg("Password must be at least 6 characters.");
       return;
     }
 
     if (newPassword !== newPasswordConfirm) {
-      setErrorMsg("Entered passwords do not match.");
+      setErrorMsg("Passwords do not match.");
       return;
     }
 
-    const usersStr = localStorage.getItem("receipts_registered_users");
-    let usersList = [];
-    if (usersStr) {
-      try {
-        usersList = JSON.parse(usersStr);
-      } catch (err) {}
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        setErrorMsg(error.message || "Failed to update password.");
+        return;
+      }
+
+      setSuccessMsg("🎉 Password updated successfully! Please log in with your new password.");
+      setTimeout(() => {
+        setIsForgotMode(false);
+        setForgotStep("email");
+        setForgotEmail("");
+        setResetEnteredCode("");
+        setNewPassword("");
+        setNewPasswordConfirm("");
+      }, 1500);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to update password.");
     }
-
-    const index = usersList.findIndex((u: any) => (u?.email || "").toLowerCase() === (forgotEmail || "").trim().toLowerCase());
-    if (index === -1) {
-      setErrorMsg("Internal database sync error. Registered account not found.");
-      return;
-    }
-
-    const updatedUser = {
-      ...usersList[index],
-      passwordHex: newPassword
-    };
-
-    usersList[index] = updatedUser;
-    localStorage.setItem("receipts_registered_users", JSON.stringify(usersList));
-    localStorage.setItem("receipts_current_user", JSON.stringify(updatedUser));
-
-    setSuccessMsg("🎉 Password updated successfully! Authenticating into dashboard...");
-
-    setTimeout(() => {
-      onAuthSuccess(updatedUser);
-    }, 1500);
   };
 
   const handleVerifyAndSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
-    
-    if (verificationCode !== dispatchedCode && verificationCode !== "777888" && verificationCode !== "123456") {
-      setErrorMsg("Invalid verification code. Please check your phone or inbox and try again.");
-      return;
-    }
-
-    setVerificationStage("email");
-
-    setTimeout(() => {
-      setVerificationStage("mobile");
-
-      setTimeout(() => {
-        setVerificationStage("loading_workspace");
-
-        setTimeout(async () => {
-          try {
-            const signupPayload = {
-              fullName,
-              email,
-              mobileNumber,
-              passwordHex: password,
-              city,
-              country,
-              bio,
-              avatarUrl,
-              signUpMethod: "email",
-              otpCodeInput: verificationCode
-            };
-
-            const resp = await fetch("/api/register-signup", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(signupPayload)
-            });
-            const data = await resp.json();
-
-            const usersStr = localStorage.getItem("receipts_registered_users") || "[]";
-            let usersList = [];
-            try { usersList = JSON.parse(usersStr); } catch (e) {}
-
-            const localUser = data.user || {
-              fullName,
-              email,
-              mobileNumber,
-              passwordHex: password,
-              city,
-              country,
-              bio,
-              avatarUrl,
-              hasUsedTrial: false,
-              isPurchased: false,
-              licenseKey: ""
-            };
-
-            usersList = usersList.filter((u: any) => (u?.email || "").toLowerCase() !== (email || "").toLowerCase());
-            usersList.push(localUser);
-            localStorage.setItem("receipts_registered_users", JSON.stringify(usersList));
-            localStorage.setItem("receipts_current_user", JSON.stringify(localUser));
-
-            onAuthSuccess(localUser);
-          } catch (err) {
-            console.error("SignUp backend error, falling back locally:", err);
-            const fallbackUser = {
-              fullName,
-              email,
-              mobileNumber,
-              passwordHex: password,
-              city,
-              country,
-              bio,
-              avatarUrl,
-              hasUsedTrial: false,
-              isPurchased: false,
-              licenseKey: ""
-            };
-            localStorage.setItem("receipts_current_user", JSON.stringify(fallbackUser));
-            onAuthSuccess(fallbackUser);
-          }
-        }, 1200);
-
-      }, 1200);
-
-    }, 1200);
+    setIsVerificationStep(false);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
