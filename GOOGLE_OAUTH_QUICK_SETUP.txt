@@ -1,0 +1,72 @@
+═══════════════════════════════════════════════════════════════════════════════
+  GOOGLE OAUTH QUICK SETUP FOR RECEIPTS AI
+═══════════════════════════════════════════════════════════════════════════════
+
+YOUR GOOGLE CLIENT ID:
+  278257332604-nku3een6t0n0m8sv5imuiu3fir0qcb5u.apps.googleusercontent.com
+
+YOUR SUPABASE REDIRECT URI:
+  https://0ec90b57d6e95fcbda19832f.supabase.co/auth/v1/callback
+
+───────────────────────────────────────────────────────────────────────────────
+STEP 1: Get Your Google Client Secret (30 seconds)
+───────────────────────────────────────────────────────────────────────────────
+
+1. Open: https://console.cloud.google.com
+2. Go to APIs & Services → Credentials
+3. Click on your OAuth app (the one with your Client ID above)
+4. Copy the Client Secret value
+5. Keep it somewhere safe temporarily
+
+───────────────────────────────────────────────────────────────────────────────
+STEP 2: Configure Supabase (1 minute)
+───────────────────────────────────────────────────────────────────────────────
+
+1. Open: https://app.supabase.com
+2. Select your project
+3. Go to Authentication → Providers
+4. Click Google
+5. Toggle ON
+6. Paste:
+   - Client ID: 278257332604-nku3een6t0n0m8sv5imuiu3fir0qcb5u.apps.googleusercontent.com
+   - Client Secret: (from Step 1)
+7. Click Save
+
+───────────────────────────────────────────────────────────────────────────────
+STEP 3: Verify Google Cloud Configuration (30 seconds)
+───────────────────────────────────────────────────────────────────────────────
+
+1. Google Cloud Console → Credentials
+2. Click your OAuth app
+3. Make sure this URI is in "Authorized redirect URIs":
+   https://0ec90b57d6e95fcbda19832f.supabase.co/auth/v1/callback
+4. If not, add it and save
+
+───────────────────────────────────────────────────────────────────────────────
+STEP 4: Test It! (instantly)
+───────────────────────────────────────────────────────────────────────────────
+
+Run locally:
+  npm run dev
+
+Then:
+  1. Go to http://localhost:3000
+  2. Click "Sign up with Google account"
+  3. See the Google login popup
+  4. Login and enjoy!
+
+───────────────────────────────────────────────────────────────────────────────
+DONE! 🎉
+───────────────────────────────────────────────────────────────────────────────
+
+Your app now has:
+  ✅ Email/Password Auth
+  ✅ Google OAuth Sign-in
+  ✅ User Profiles (Supabase)
+  ✅ AI-Powered Copy Generation
+
+Ready to deploy to Vercel:
+  npm run build
+  vercel deploy
+
+═══════════════════════════════════════════════════════════════════════════════

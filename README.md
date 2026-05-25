@@ -27,29 +27,22 @@ This app helps marketing professionals and copywriters instantly transform clien
    npm run dev
    ```
 
-## Enable Google OAuth (Optional)
+## Enable Google OAuth
 
-Google OAuth via Supabase requires additional setup:
+Google OAuth requires configuring Supabase with your Google credentials.
 
-1. **Create a Google Cloud Project:**
-   - Go to [Google Cloud Console](https://console.cloud.google.com)
-   - Create a new project
-   - Enable the Google+ API
-   - Create OAuth 2.0 credentials (Web application)
-   - Add your Supabase domain to authorized redirect URIs:
-     ```
-     https://your-project-ref.supabase.co/auth/v1/callback
-     ```
+**You have:** Google Client ID `278257332604-nku3een6t0n0m8sv5imuiu3fir0qcb5u.apps.googleusercontent.com`
 
-2. **Configure Supabase OAuth:**
-   - Go to [Supabase Dashboard](https://app.supabase.com)
-   - Navigate to Authentication → Providers → Google
-   - Enable Google provider
-   - Paste your Google OAuth Client ID and Client Secret
-   - Save
+**Quick Setup:**
 
-3. **Test:**
-   - Users can now sign up with Google on your app
+1. Get your Google Client Secret from [Google Cloud Console](https://console.cloud.google.com) (APIs & Services → Credentials)
+2. Go to [Supabase Dashboard](https://app.supabase.com) → Authentication → Providers → Google
+3. Enable Google and paste:
+   - Client ID: `278257332604-nku3een6t0n0m8sv5imuiu3fir0qcb5u.apps.googleusercontent.com`
+   - Client Secret: (paste from step 1)
+4. Save and test!
+
+See `SETUP_INSTRUCTIONS.md` for detailed steps.
 
 ## Deploy to Vercel
 
